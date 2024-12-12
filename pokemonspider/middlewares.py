@@ -2,12 +2,14 @@
 #
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-
+import random
 from scrapy import signals
-
-# useful for handling different item types with a single interface
-from itemadapter import is_item, ItemAdapter
-
+from twisted.internet.defer import Deferred
+from pyppeteer import launch
+from scrapy.http import HtmlResponse
+import asyncio
+import logging
+import requests
 
 class PokemonspiderSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
@@ -35,6 +37,8 @@ class PokemonspiderSpiderMiddleware:
         # Must return an iterable of Request, or item objects.
         for i in result:
             yield i
+
+
 
     def process_spider_exception(self, response, exception, spider):
         # Called when a spider or process_spider_input() method
@@ -101,3 +105,70 @@ class PokemonspiderDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+
+from scrapy.http import  HtmlResponse
+from selenium import webdriver
+import time
+class SeleniumMiddleware(object):
+    def process_request(self, request, spider):
+        url = request.url
+        browser = webdriver.Edge()
+        browser.get(url)
+        time.sleep(7)
+        html = browser.page_source
+        return HtmlResponse(url=url, body=html, encoding='utf-8', request=request)
+
+
+import random
+import requests
+from scrapy import signals
+from scrapy.exceptions import IgnoreRequest
+
+
+class CookieMiddleware:
+    def __init__(self, user_agents):
+        self.user_agents = user_agents
+        self.cookies = None
+        self.update_cookies()
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        # This method is used by Scrapy to create your spiders.
+        s = cls(crawler.settings.get('USER_AGENTS'))
+        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def spider_opened(self, spider):
+        self.update_cookies()
+
+    def update_cookies(self):
+        try:
+            response = requests.get('https://limitlesstcg.com/cards', headers={'User-Agent': random.choice(self.user_agents)})
+            response.raise_for_status()
+            self.cookies = dict(response.cookies)
+            print("Updated cookies:", self.cookies)
+        except requests.RequestException as e:
+            print(f"Error fetching fresh cookies: {e}")
+
+    def process_request(self, request, spider):
+        if not self.cookies or 'Pardon Our Interruption' in request.meta.get('retry_times', 0):
+            self.update_cookies()
+
+        request.headers['cookies'] = self.cookies
+        request.headers['User-Agent'] = random.choice(self.user_agents)
+        print("cookies--------------",request.cookies)
+
+    def process_response(self, request, response, spider):
+        # 如果遇到403或特定文本，则认为cookie可能已失效，并尝试重新获取
+        if response.status == 403 or 'Pardon Our Interruption' in response.text:
+            self.update_cookies()
+            new_request = request.replace(dont_filter=True)
+            new_request.priority = request.priority + 1
+            return new_request
+
+        return response
+
+    def process_exception(self, request, exception, spider):
+        # 在这里可以处理任何异常情况，例如网络错误等
+        print(f"Caught exception: {exception}")
+        return None
