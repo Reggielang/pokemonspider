@@ -19,7 +19,7 @@ NEWSPIDER_MODULE = "pokemonspider.spiders"
 
 #数据库参数
 MONGO_URL = "mongodb://localhost:27017"
-MONGO_DATABASE = "pokemon"
+MONGO_DATABASE = "cards"
 MONGO_COLLECTION = "pokedex"
 
 PROXY_LIST = './proxies.txt'
@@ -47,7 +47,7 @@ CONCURRENT_REQUESTS = 16
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 1.5
+DOWNLOAD_DELAY = 1
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
