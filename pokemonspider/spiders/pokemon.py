@@ -8,7 +8,6 @@ from scrapy.spiders import CrawlSpider, Rule
 
 from pokemonspider.items import PokemonItem
 
-
 class PokemonSpider(CrawlSpider):
     name = "pokemon"
     allowed_domains = ["www.pokemon.com"]
@@ -27,7 +26,7 @@ class PokemonSpider(CrawlSpider):
     }
 
     def start_requests(self):
-        url = self.base_url+f'/kalos'
+        url = self.base_url
         yield Request(url, callback=self.parse_item, headers=self.headers)
 
 
